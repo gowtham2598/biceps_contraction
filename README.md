@@ -88,13 +88,14 @@ The text logs autonomously extracted via the pipeline were processed using [`plo
 ## 7. Material Sensitivity Study: Isotropic Matrix Stiffness ($c_1$)
 
 ### 7.1 Clinical & Physical Objective
-To investigate how pathological alterations in the muscle's extracellular matrix (ECM) affect overall contracting function, a material sensitivity analysis was conducted on the isotropic matrix shear stiffness coefficient ($c_1$). 
+To investigate how structural variations in the muscle's extracellular matrix (ECM) affect overall contracting function, a material sensitivity analysis was conducted on the isotropic matrix shear stiffness coefficient ($c_1$). 
 
-In biomechanics, tracking matrix variations allows us to simulate and quantify structural tissue abnormalities. By scaling the baseline parameter across a specific spectrum ($0.5\times$ to $4.0\times$), we explicitly model distinct muscle tissue health conditions:
-* **$0.5\times c_1$ ($6.925\text{ MPa}$):** Degraded / Hypotonic Matrix (simulating muscle wasting or structural ECM degradation).
-* **$1.0\times c_1$ ($13.85\text{ MPa}$):** Healthy Control Baseline (normal physiological muscle state).
-* **$2.0\times c_1$ ($27.70\text{ MPa}$):** Mild Matrix Fibrosis (early-stage post-injury structural scarring).
-* **$4.0\times c_1$ ($55.40\text{ MPa}$):** Severe Pathological Fibrosis (chronic, dense connective tissue proliferation).
+The parameter scaling spectrum ($0.5\times$, $1.0\times$, $2.0\times$, and $4.0\times$) was chosen strictly as an **exploratory simulation range** to evaluate the numerical stability and kinematic influence of the FEBio formulation. The assigned pathomechanical labels are intuitive placeholders used as a descriptive shorthand for readability, rather than standardized clinical cutoffs:
+
+* **$0.5\times c_1$ ($6.925\text{ MPa}$):** Degraded / Hypotonic Matrix (A simulation level representing a halved baseline value to model structural continuum decay or wasting).
+* **$1.0\times c_1$ ($13.85\text{ MPa}$):** Healthy Control Baseline (The standard physiological starting configuration).
+* **$2.0\times c_1$ ($27.70\text{ MPa}$):** Mild Matrix Fibrosis (An intuitive placeholder where doubling the baseline stiffness parameter represents a moderate mathematical change).
+* **$4.0\times c_1$ ($55.40\text{ MPa}$):** Severe Pathological Fibrosis (An intuitive placeholder where quadrupling the baseline stiffness parameter represents a massive mathematical change to test the model's upper resistance limits).
 
 ---
 
@@ -184,13 +185,14 @@ The extracted text streams tracking the unconstrained tendon boundary (Node 1773
 ## 8. Material Sensitivity Study: Passive Fiber Stiffness ($c_3$)
 
 ### 8.1 Clinical & Physical Objective
-To investigate how pathological alterations within the muscle's longitudinal architectural bundles affect active contracting function, a material sensitivity analysis was conducted on the passive unaligned fiber stiffness coefficient ($c_3$). 
+To investigate how localized directional variations within the muscle's longitudinal architectural bundles affect active contracting function, a parallel sensitivity analysis was executed on the passive unaligned fiber stiffness coefficient ($c_3$). 
 
-By sweeping this parameter across an identical scaling spectrum ($0.5\times$ to $4.0\times$) relative to the baseline control, we explicitly simulate distinct microstructural fiber bundles and connective tissue health states:
-* **$0.5\times c_3$ ($1.035\text{ MPa}$):** Degraded / Hypotonic Fibers (simulating localized fiber degradation or microstructural muscle wasting).
-* **$1.0\times c_3$ ($2.07\text{ MPa}$):** Healthy Control Baseline (normal physiological muscle fiber state).
-* **$2.0\times c_3$ ($4.14\text{ MPa}$):** Mild Fiber Stiffening (early-stage intramuscular structural scarring or fiber thickening).
-* **$4.0\times c_3$ ($8.28\text{ MPa}$):** Severe Pathological Fibrosis / Sclerosis (chronic, dense longitudinal connective tissue proliferation).
+To maintain perfect consistency with the matrix evaluation, an identical exploratory spectrum was applied. The condition labels are used purely for descriptive readability within this simulation study to represent moderate versus massive parameter scaling bounds, with no external clinical thresholds implied:
+
+* **$0.5\times c_3$ ($1.035\text{ MPa}$):** Degraded / Hypotonic Fibers (Halving the baseline parameter to simulate localized longitudinal bundle degradation).
+* **$1.0\times c_3$ ($2.07\text{ MPa}$):** Healthy Control Baseline (The standard un-scaled starting configuration).
+* **$2.0\times c_3$ ($4.14\text{ MPa}$):** Mild Fiber Stiffening (An intuitive placeholder where a $2.0\times$ multiplier represents a moderate mathematical change).
+* **$4.0\times c_3$ ($8.28\text{ MPa}$):** Severe Pathological Fibrosis / Sclerosis (An intuitive placeholder where a $4.0\times$ multiplier represents a massive mathematical change to stress-test directional bundle resistance under peak loading fields).
 
 ---
 
