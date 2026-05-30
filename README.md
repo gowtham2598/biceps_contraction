@@ -499,3 +499,104 @@ The secondary plot isolates the terminal step transition ($t = 29.85\text{ s}$ t
 3. **Global Summary of Passive Muscle Mechanics:** This study completes the comprehensive material evaluation framework for skeletal muscle contraction pathomechanics. The collective sensitivity data establishes a clear hierarchy for structural tissue modifications:
     * **Isotropic Matrix Stiffness ($c_1$):** Exerts dominant control over macro kinematics. Connective tissue matrix fibrosis severely restricts shortening capacity (inducing a $66.7\%$ drop in global displacement).
     * **Passive Fiber Coefficients ($c_3$, $c_4$, $c_5$):** Remain functionally hidden during active concentric contraction. Because longitudinal fibers undergo buckling under compressive shortening, variations in exponential scale ($c_3$), shape curvature ($c_4$), or straightened modulus ($c_5$) cannot impede global movement delivery. Their presence manifests exclusively as sub-micrometer boundary artifacts driven by secondary transverse bulging fields, which vanish entirely if stretch thresholds are not achieved.
+
+---
+
+---
+
+## 11. Active Contraction Study: Active Scale Factor ($ascl$)
+
+### 11.1 Clinical & Physical Objective
+To investigate how changes in internal cellular engine strength govern global macro shortening and mechanical output, a material sensitivity analysis was conducted on the active scale factor coefficient ($ascl$; officially designated in the FEBio User Manual syntax as the scaling multiplier for the active fiber contractility load curve).
+
+The parameter spectrum ($0.5$, $1.0$, $1.5$, and $2.0$) was chosen strictly as an **exploratory simulation range** to evaluate the macro-kinematic influence of the FEBio active force engine. These values act as a numerical stress test for force generation scaling rather than actual diagnostic metrics. The assigned condition labels are intuitive placeholders used as a descriptive shorthand for readability within this simulation study, with no external clinical thresholds or exact real-world conditions implied:
+
+* **$0.5\times ascl$:** Atrophied / Deep Neuromuscular Fatigue State (A simulation level representing a 50% reduction in contractility to model severe operational down-regulation or tissue wasting).
+* **$1.0\times ascl$:** Healthy Control Baseline (The standard physiological starting configuration used as a benchmark).
+* **$1.5\times ascl$:** Hyper-Activation / Targeted Functional Electrical Stimulation (FES) (An intuitive simulation placeholder modeling up-regulated contractile recruitment via external excitation).
+* **$2.0\times ascl$:** Acute Inotropic Ceiling / Maximal Tetanic Cramp (An exploratory boundary representing a full involuntary tetanic spasm to stress-test the high-strain continuum limits of the 3D model).
+
+---
+
+### 11.2 Expanded Repository Layout
+To support Strategy A (modular parameter tracking) and preserve full directory scannability for external evaluation, all assets were isolated into a dedicated active contraction directory branch:
+* **Input Decks:** [`feb_inputs/active_ascl/`](feb_inputs/active_ascl/) — Holds individual active configuration XML decks (`biceps_ascl_0.5.feb` through `biceps_ascl_2.0.feb`).
+* **Text Streams:** [`raw_logs/active_ascl/`](raw_logs/active_ascl/) — Clean data vault containing isolated ASCII numerical streams (`ascl_*_disp.txt`) and solver diagnostic trackers (`ascl_*.log`).
+* **Automation Workspace:** [`scripts/`](scripts/) — Central script folder housing our automated validation utilities.
+    * [`scripts/run_sweep_ascl.py`](scripts/run_sweep_ascl.py) — Automated execution loop, inline data stream filter, and file routing manager.
+    * [`scripts/plot_sweep_ascl.py`](scripts/plot_sweep_ascl.py) — Custom global macro-trend log parser and figure generator.
+* **Visual Databases:** [`febio_results/active_ascl/`](febio_results/active_ascl/) — Central vault storing high-fidelity 3D binary visualization tracking databases (`biceps_ascl_*.xplt`).
+
+---
+
+### 11.3 Core Modifications & Pipeline Adjustments
+
+#### 11.3.1 Active Scale Factor Modification
+Within the `<Material>` block, under the `<active_contraction>` sub-architecture of the FEBio input deck, the active scale tag was isolated and modified. For structural transparency, the following snippet illustrates the specific case of the severely atrophied condition model (`biceps_ascl_0.5.feb`) where the active multiplier was reduced from unity to $0.5$:
+
+```xml
+<Material>
+    <material id="1" name="Material1" type="trans iso Mooney-Rivlin">
+        <density>1</density>
+        <k>100</k>
+        <pressure_model>default</pressure_model>
+        <c1>13.85</c1>
+        <c2>0</c2>
+        <c3>2.07</c3>
+        <c4>61.44</c4>
+        <c5>640.7</c5>
+        <lam_max>1.03</lam_max>
+        <fiber type="vector">
+            <vector>0,0,1</vector>
+        </fiber>
+        <active_contraction>
+            <ascl lc="1">0.5</ascl>
+            <Tmax>1</Tmax>
+            <ca0>4.35</ca0>
+            <camax>0</camax>
+            <beta>4.75</beta>
+            <l0>1.58</l0>
+            <refl>2.04</refl>
+        </active_contraction>
+    </material>
+</Material>
+```
+
+#### 11.3.2 Isolated Text Output Routing
+To ensure concurrent execution runs never overwrite active tracking data streams, unique file logging targets were injected inside the `<Output>` blocks, routing ASCII results relatively into the `raw_logs/` active subdirectory structure:
+
+```xml
+<Output>
+    <plotfile type="febio">
+        <var type="displacement"/>
+        <var type="stress"/>
+    </plotfile>
+    <logfile>
+        <node_data data="uz" file="../../raw_logs/active_ascl/ascl_0.5_disp.txt" nodes="1773"/>
+        <element_data data="sz" file="../../raw_logs/active_ascl/ascl_0.5_stress.txt" elements="12457"/>
+        <element_data data="J" file="../../raw_logs/active_ascl/ascl_0.5_vol.txt" elements="12457"/>
+    </logfile>
+</Output>
+```
+
+---
+
+### 11.4 Quantitative Analysis & Active Contraction Trend Plots
+
+The extracted text streams tracking the unconstrained tendon boundary (Node 1773) were compiled via [`scripts/plot_sweep_ascl.py`](scripts/plot_sweep_ascl.py), outputting a global macro-scale kinematic timeline tracking absolute Z-displacement over the entire 30-second simulation:
+
+![Active Scale Factor Sensitivity](images/active_ascl/ascl_sweep_comparison.png)
+*Quantitative transient tracking curves isolating Node 1773 absolute Z-displacement across the active simulation time domain.*
+
+* **Plot Explanation:** Unlike the passive parameter evaluations where curves overlapped perfectly due to fiber buckling under compression, the active scale factor study displays a dramatic, distinct macro-scale divergence between all four testing configurations. As the active loading curve rises, the displacement profiles split wide open, demonstrating direct control over macro-kinematic execution.
+
+#### 11.4.1 Interconnected Mechanical Findings (Parameter Study Summary):
+1. **Direct Macro-Kinematic Control:** The transient plot establishes that the active scale factor coefficient holds a highly predictable, near-linear control relationship over global muscle shortening. At peak contraction ($t = 30\text{ s}$), final absolute tendon displacements scale directly with muscle power:
+    * **$0.5\times ascl$ (Atrophied State):** $\approx 0.12\text{ mm}$ of total shortening.
+    * **$1.0\times ascl$ (Healthy Baseline):** $\approx 0.24\text{ mm}$ of total shortening.
+    * **$1.5\times ascl$ (Hyper-Activation):** $\approx 0.36\text{ mm}$ of total shortening.
+2. **High-Strain Continuum Non-Linearity:** At the highest functional limit ($2.0\times ascl$), the peak displacement converges at $\approx 0.47\text{ mm}$, falling just short of a perfectly linear $0.48\text{ mm}$. This subtle non-linear drop highlights an elegant multi-dimensional continuum mechanism: as the active engine drives massive longitudinal shortening along the primary axis, the tissue is forced to expand and bulge outward radically in the X and Y directions to conserve volume ($J \approx 1.0$). This massive radial bulging heavily stretches the passive background isotropic matrix ($c_1$), which acts like an elastic girdle that grows increasingly stiff at high strains, eventually generating enough passive structural resistance to slightly push back against the active contractility engine.
+3. **Core Insights for Muscle Pathomechanics:** This study provides the definitive operational contrast to our passive material evaluations. Passive fiber parameters ($c_3, c_4, c_5$) are structurally bypassed during concentric contraction due to buckling limitations under compression, rendering them invisible to global kinematics. The macro-scale performance of actively contracting muscle tissue is governed exclusively by a competition between internal active engine power ($ascl$) and surrounding background isotropic matrix stiffness ($c_1$).
+
+---
+
