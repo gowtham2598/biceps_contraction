@@ -600,3 +600,116 @@ The extracted text streams tracking the unconstrained tendon boundary (Node 1773
 
 ---
 
+---
+
+## 12. Active Contraction Study: Peak Intracellular Calcium Sensitivity ($camax$)
+
+### 12.1 Clinical & Physical Objective
+To investigate how localized length-dependent activation (LDA) mechanisms influence macro-scale muscle shortening, a final active material sensitivity analysis was conducted on the peak intracellular calcium parameter ($camax$; officially designated in the FEBio User Manual as the maximum peak intracellular calcium concentration threshold).
+
+The parameter spectrum ($0.0$, $2.175$, $4.35$, $8.7$, and $17.4$) was chosen strictly as an **exploratory simulation range** to evaluate the mechanical sensitivity of FEBio's underlying Guccione calcium-activation equations. These values serve as a numerical stress test for length-dependent activation scaling rather than actual biological diagnostics. The assigned condition labels are intuitive placeholders used as a descriptive shorthand for readability within this simulation study, with no external clinical thresholds or exact real-world conditions implied:
+
+* **$camax = 0.0$:** Suppressed Length-Dependency Control (The baseline configuration where length-dependent calcium sensitivity is toggled completely off, forcing uniform force generation).
+* **$camax = 2.175$ ($0.5\times$ reference):** Hyper-Sensitized Activation Barrier (An exploratory simulation level where lowering the parameter drops the activation threshold, making contractility highly reactive to minimal tissue stretch).
+* **$camax = 4.35$ ($1.0\times$ reference):** Standard Calibrated Reference Benchmark (The ideal textbook balancing configuration where the peak capacity threshold perfectly matches the model's native resting calcium concentration).
+* **$camax = 8.7$ ($2.0\times$ reference):** Moderately Desensitized Activation Barrier (An exploratory simulation level where doubling the parameter raises the activation threshold, making the tissue sluggish and less responsive to stretch).
+* **$camax = 17.4$ ($4.0\times$ reference):** Extremely Desensitized Functional Boundary (A severe numerical boundary test where the activation barrier is pushed exceptionally high, heavily muting the length-dependent response).
+
+---
+
+### 12.2 Expanded Repository Layout
+To maintain strict adherence to Strategy A (modular parameter tracking) and ensure complete directory scannability, all files were isolated into a dedicated sensitivity branch:
+* **Input Decks:** [`feb_inputs/active_camax/`](feb_inputs/active_camax/) — Holds the five unique XML configuration decks (`biceps_camax_0.0.feb` through `biceps_camax_17.4.feb`).
+* **Text Streams:** [`raw_logs/active_camax/`](raw_logs/active_camax/) — Filtered data vault containing ASCII tracking data streams (`camax_*_disp.txt`) and solver diagnostic logs (`camax_*.log`).
+* **Automation Workspace:** [`scripts/`](scripts/) — Central script folder housing our automated execution utilities.
+    * [`scripts/run_sweep_camax.py`](scripts/run_sweep_camax.py) — Automated solver loop, inline data stream filter, and file routing manager.
+    * [`scripts/plot_sweep_camax.py`](scripts/plot_sweep_camax.py) — Custom multi-curve log parser and absolute kinematics figure compiler.
+* **Visual Databases:** [`febio_results/active_camax/`](febio_results/active_camax/) — Core storage vault holding the 3D binary visualization tracking databases (`biceps_camax_*.xplt`).
+
+---
+
+### 12.3 Core Modifications & Pipeline Adjustments
+
+#### 12.3.1 Calcium Sensitivity Modification
+Within the `<active_contraction>` sub-block of the material definition, the `<camax>` tag was isolated and swept across our calibrated spectrum. The following snippet demonstrates the configuration for the standard calibrated reference benchmark model (`biceps_camax_4.35.feb`), where the parameter is set to equal the native calcium availability concentration:
+
+```xml
+<Material>
+    <material id="1" name="Material1" type="trans iso Mooney-Rivlin">
+        <density>1</density>
+        <k>100</k>
+        <pressure_model>default</pressure_model>
+        <c1>13.85</c1>
+        <c2>0</c2>
+        <c3>2.07</c3>
+        <c4>61.44</c4>
+        <c5>640.7</c5>
+        <lam_max>1.03</lam_max>
+        <fiber type="vector">
+            <vector>0,0,1</vector>
+        </fiber>
+        <active_contraction>
+            <ascl lc="1">1</ascl>
+            <Tmax>1</Tmax>
+            <ca0>4.35</ca0>
+            <camax>4.35</camax>
+            <beta>4.75</beta>
+            <l0>1.58</l0>
+            <refl>2.04</refl>
+        </active_contraction>
+    </material>
+</Material>
+```
+
+#### 12.3.2 Isolated Text Output Routing
+To prevent output data collisions across consecutive solver runs, unique relative file logging targets were injected inside the `<Output>` architecture blocks to route data cleanly into the active subdirectory structure:
+
+```xml
+<Output>
+    <plotfile type="febio">
+        <var type="displacement"/>
+        <var type="stress"/>
+    </plotfile>
+    <logfile>
+        <node_data data="uz" file="../../raw_logs/active_camax/camax_4.35_disp.txt" nodes="1773"/>
+        <element_data data="sz" file="../../raw_logs/active_camax/camax_4.35_stress.txt" elements="12457"/>
+        <element_data data="J" file="../../raw_logs/active_camax/camax_4.35_vol.txt" elements="12457"/>
+    </logfile>
+</Output>
+```
+
+---
+
+### 12.4 Quantitative Analysis & Length-Dependency Activation Plots
+
+The text streams tracking the unconstrained tendon boundary (Node 1773) were compiled via [`scripts/plot_sweep_camax.py`](scripts/plot_sweep_camax.py), outputting a global kinematics timeline tracking absolute Z-displacement over the entire 30-second contraction domain:
+
+![Calcium Sensitivity Parameter Study](images/active_camax/camax_sweep_comparison.png)
+*Quantitative transient tracking curves isolating Node 1773 absolute Z-displacement across the length-dependent activation domain.*
+
+#### 12.4.1 Interconnected Mechanical Findings (Parameter Study Summary):
+1. **The Core Balance Superimposition:** An exceptional mathematical validation occurs between the disabled control (`camax = 0.0`; blue curve) and the standard calibrated benchmark (`camax = 4.35`; green curve). Both curves overlap perfectly across the entire 30-second timeline, peaking at an identical absolute displacement of $\approx 0.24\text{ mm}$. This proves that configuring the activation threshold to perfectly match the resting cellular concentration yields a well-balanced physiological state identical to the length-independent baseline.
+2. **Sensitivity Shift Mechanics:** Altering the activation barrier reveals a highly structured, predictable control behavior over macro-kinematic delivery. Lowering the parameter value to $2.175$ hyper-sensitizes the tissue, dropping the activation barrier and allowing normal calcium levels to drive a more powerful contraction peaking at $\approx 0.266\text{ mm}$. Conversely, raising the parameter desensitizes the muscle engine; doubling it ($8.7$) drops peak displacement to $\approx 0.176\text{ mm}$, and quadrupling it ($17.4$) severely dampens the contraction down to $\approx 0.088\text{ mm}$ as the activation barrier becomes nearly impossible for the native calcium concentration to overcome.
+3. **Definitive Summary of Active Muscle Mechanics:** This final study completes the full multi-dimensional parameter framework for the 3D biceps contraction model. While passive components ($c_3, c_4, c_5$) remain secondary boundary features due to fiber buckling under compressive shortening, the forward performance of active muscle tissue is controlled explicitly by the balance between raw contractility scale ($ascl$) and the internal length-dependent calcium sensitivity thresholds ($camax$), bounded ultimately by the structural resistance of the background isotropic matrix ($c_1$).
+
+---
+
+### 12.5 Analytical Verification of True Active Tension ($T^a$)
+
+#### 12.5.1 Kinematic Derivation Method
+To isolate the pure material physics of the Guccione active contraction engine from localized mesh artifacts (such as background matrix compression and element shearing interactions), a standalone analytical verification was conducted. 
+
+Using the clean macro-displacement history ($u_z$) of the unconstrained tendon boundary, the real-time physical shortening of the muscle fiber was calculated across the 30-second timeframe ($l_{\text{current}}(t) = l_r - |u_z(t)|$). These dynamic geometric changes were then fed directly into the official FEBio half-saturation threshold equation inside a custom Python processing pipeline ([scripts/plot_simulation_active_tension.py](scripts/plot_simulation_active_tension.py)) to map the noise-free active tension ($T^a$) development over time.
+
+![Simulated Active Tension Verification](images/active_camax/simulation_active_tension_curves.png)
+*True analytical derivation of active fiber tension ($T^a$) mapped over time using the macroscopic geometric shortening history of the 3D biceps simulation.*
+
+#### 12.5.2 Key Mechanical and Software Findings
+
+1. **The $camax = 0.0$ Internal Software Mechanic:** The analytical tracking reveals a fascinating divergence: while the deactivated control ($camax = 0.0$) and standard baseline ($camax = 4.35$) yielded identical physical displacements, their pure mathematical profiles differ. In the FEBio solver, setting $camax = 0$ acts as a code shortcut that flags the engine to run using default baseline properties. However, evaluating a literal mathematical zero for $Ca_{\max}$ inside the Guccione formula drops the half-saturation barrier ($ECa_{50}$) to absolute zero. Without an internal activation barrier, the calcium activation fraction stays pegged at a perfect $1.0$, locking the active tension at a flat maximum ceiling of $1.0\text{ MPa}$ throughout the entire contraction.
+
+2. **Physiological Concentric Tension Decay:** For all active configurations where length-dependency is enabled ($2.175$ through $17.4$), the true active tension curves exhibit a smooth downward slope over the 30-second timeline. This perfectly mirrors real-world muscle physiology. As the biceps mesh contracts and shortens, the physical length of the fiber ($l_{\text{current}}$) drops below its resting state. This reduction in length causes the internal activation threshold ($ECa_{50}$) to rise. Because the available cellular calcium concentration is fixed ($Ca_0 = 4.35$), it struggles to climb this rising barrier, naturally scaling down the active tension capacity as shortening progresses.
+
+3. **Validation of the Sensitivity Hierarchy:** This noise-free analytical mapping flawlessly preserves the structural hierarchy discovered in the global kinematics study. Lowering the parameter value ($camax = 2.175$; orange curve) keeps the internal activation barrier low, allowing the cell to maintain a hyper-sensitized high-tension delivery. Conversely, raising the parameter raises the activation barrier, forcing the muscle engine into a desensitized, sluggish state where active tension generation is severely muted ($camax = 17.4$; purple curve).
+
+---
