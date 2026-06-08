@@ -8,7 +8,7 @@ labels = {
     "0.5": "0.5x ascl (Severe Atrophy / Deep Fatigue State)",
     "1.0": "1.0x ascl (Healthy Control Baseline)",
     "1.5": "1.5x ascl (Hyper-Activation / FES Scenario)",
-    "2.0": "2.0x ascl (Acute Inotropic Ceiling / Maximal Cramp)"
+    "2.0": "2.0x ascl (Acute Inotropic Ceiling / Maximal Voluntary Contraction Boundary)"
 }
 
 repo_root = "."

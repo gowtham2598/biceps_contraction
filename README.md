@@ -1,25 +1,69 @@
-# Task 6: Monolithic Muscle Contraction - Parameter Sweeps
+# Multi-Parameter Sensitivity Analysis of 3D Biceps Muscle Contraction Simulations
 
-## 1. Objective
-Investigate the effect of maximum isometric active tension ($T_{\max}$) on the axial Z-displacement and volumetric stability of a 3D continuum biceps muscle model. This study establishes a rigorous baseline dataset and implements an automated text-logging extraction pipeline to streamline multi-run sensitivity evaluations.
+## Table of Contents
+* [1. Executive Research Objective](#1-executive-research-objective)
+* [2. Technical Repository Architecture](#2-technical-repository-architecture)
+* [3. Global Baseline Material & Solver Specifications](#3-global-baseline-material--solver-specifications)
+* [4. Pipeline Preprocessing & Volumetric Meshing](#4-pipeline-preprocessing--volumetric-meshing)
+* [5. Baseline Simulation Visualizations & Kinematic Framework](#5-baseline-simulation-visualizations--kinematic-framework)
+* [6. Sensitivity Study I: Isometric Active Tension ($T_{\max}$) Exploratory Sweep](#6-sensitivity-study-i-isometric-active-tension-t_max-exploratory-sweep)
+* [7. Sensitivity Study II: Isotropic Matrix Shear Stiffness ($c_1$)](#7-sensitivity-study-ii-isotropic-matrix-shear-stiffness-c_1)
+* [8. Sensitivity Study III: Unaligned Passive Fiber Stiffness ($c_3$)](#8-sensitivity-study-iii-unaligned-passive-fiber-stiffness-c_3)
+* [9. Sensitivity Study IV: Passive Fiber Strain-Stiffening Exponent ($c_4$)](#9-sensitivity-study-iv-passive-fiber-strain-stiffening-exponent-c_4)
+* [10. Sensitivity Study V: Straightened Fiber Modulus ($c_5$)](#10-sensitivity-study-v-straightened-fiber-modulus-c_5)
+* [11. Sensitivity Study VI: Active Scale Factor Multiplier ($ascl$)](#11-sensitivity-study-vi-active-scale-factor-multiplier-ascl)
+* [12. Sensitivity Study VII: Length-Dependent Calcium Activation Threshold ($camax$)](#12-sensitivity-study-vii-length-dependent-calcium-activation-threshold-camax)
+* [13. Executive Summary of Pathomechanical Hierarchies](#13-executive-summary-of-pathomechanical-hierarchies)
+
+## 1. Executive Research Objective
+The objective of this comprehensive study is to quantify the mechanical influence of key constitutive material constants and active drive parameters on the macro-scale kinematic delivery, internal stress distribution, and volumetric stability of a 3D continuum biceps muscle model. By executing a series of systematic multi-run parameter sweeps, this research establishes a high-fidelity sensitivity dataset mapping structural tissue changes. Additionally, an automated text-logging extraction pipeline is implemented within the FEBio environment to bypass graphical user interface overhead, ensuring seamless computational reproducibility for large-scale sensitivity evaluations.
 
 ---
 
 ## 2. Technical Repository Architecture
-To maintain professional reproducibility and ensure the repository remains immediately scannable for outside researchers, the computational assets are organized into a strict, symmetric directory tree:
 
-* **Primary Documentation:** [`README.md`](README.md) — Comprehensive engineering report detailing active/passive muscle pathomechanics.
-* **Automation Workspace Scripts:** [`scripts/`](scripts/) — Centralized script vault housing automated FEBio solver execution loops (`run_sweep_*.py`) and dynamic parsing/plotting suites (`plot_sweep_*.py`).
-* **Structured Input Decks:** [`feb_inputs/`](feb_inputs/) — Contains the baseline model configuration alongside modular parameter subdirectories (`matrix_stiffness_c1/`, `fiber_stiffness_c3/`, `fiber_stiffness_c4/`) housing modified XML meshes.
-* **Extracted Lightweight Text Streams:** [`raw_logs/`](raw_logs/) — Relocated target subdirectories isolating filtered ASCII data outputs (`*_disp.txt`, `*_stress.txt`, `*_vol.txt`) and solver streams (`*.log`) to enforce excellent Git hygiene.
-* **High-Fidelity Solver Binary Databases:** [`febio_results/`](febio_results/) — Central vault storing the massive 3D binary time-series visualization tracking databases (`*.xplt`).
-* **Visualization:** [`images/`](images/) — Dedicated parameter-specific subdirectories isolating the generated transient macro trend plots and micro-scale validation windows.
+To maintain professional reproducibility and ensure the workspace remains immediately scannable for outside researchers, the computational assets are organized into a strict, symmetric directory tree tracking active development configurations, automation scripts, and lightweight data streams:
+
+* **Automation Workspace Scripts:** [`scripts/`](scripts/) — Centralized utility folder housing automated FEBio solver execution loops (`run_sweep_*.py`) and dynamic post-processing parsing/plotting suites (`plot_sweep_*.py`).
+* **Structured Input Decks:** [`feb_inputs/`](feb_inputs/) — Core project layout containing baseline model configurations alongside modular parameter subdirectories (`matrix_stiffness_c1/`, `fiber_stiffness_c3/`, etc.) housing modified XML simulation decks.
+* **Extracted Text Streams:** [`raw_logs/`](raw_logs/) — Relocated data vaults isolating filtered ASCII data outputs (`*_disp.txt`, `*_stress.txt`, `*_vol.txt`) and localized solver output streams (`*.log`) to enforce optimal Git hygiene.
+* **Visualization Assets:** [`images/`](images/) — Dedicated graphics tracking directories isolating transient macro-trend plots and micro-scale boundary validation figures utilized throughout this report.
+---
+
+## 3. Global Baseline Material & Solver Specifications
+
+To maintain a standardized benchmark across this sensitivity study, all individual parameter sweeps originate from a single, tightly calibrated baseline input deck (`biceps_baseline.feb`). The continuum physics, architectural constants, and time-dependent solver configurations for this reference control are detailed below:
+
+### 3.1 Constitutive Material Architecture
+The baseline model utilizes a **Transversely Isotropic Mooney-Rivlin (Uncoupled)** formulation to represent the passive extracellular matrix, paired with an integrated active contraction force generator:
+
+| Phenomenological Property | FEBio Syntax Parameter | Baseline Value | Physical Context / Role |
+| :--- | :--- | :--- | :--- |
+| **Matrix Shear Modulus** | `<c1>` | $13.85\text{ MPa}$ | Governs passive background matrix isotropic shear stiffness. |
+| **Matrix Higher-Order Term**| `<c2>` | $0.0\text{ MPa}$ | Set to zero to isolate linear baseline shear mechanics. |
+| **Fiber Exponential Scale** | `<c3>` | $2.07\text{ MPa}$ | Governs passive unaligned longitudinal fiber bundle scaling. |
+| **Fiber Shape Exponent** | `<c4>` | $61.44$ | Dimensionless parameter controlling strain-stiffening curvature. |
+| **Fiber Straightened Modulus**| `<c5>` | $640.7\text{ MPa}$ | Linear stiffness slope once fibers exceed stretch threshold. |
+| **Bulk Modulus (Matrix)** | `<k>` | $100.0\text{ MPa}$ | Enforces near-incompressibility penalty constraints ($J \approx 1.0$). |
+| **Fiber Stretch Limit** | `<lam_max>` | $1.03$ | Threshold ratio ($3\%$) governing passive straightened activation. |
+| **Principal Fiber Vector** | `<fiber type="vector">`| `0,0,1` | Aligns structural muscle striations parallel to global Z-axis. |
+| **Active Tension Engine Strength**| `<Tmax>` | $1.0\text{ MPa}$ | Isometric active peak force limit of the contractile engine. |
+| **Intracellular Calcium Base**| `<ca0>` | $4.35$ | Resting intracellular calcium availability (dimensionless numerical parameter in FEBio's Guccione formulation). |
+| **LDA Calcium Sensitivity** | `<camax>` | $0.0$ | Length-dependent activation calcium threshold (dimensionless numerical parameter; toggled off in baseline). |
+| **Active Curve Shape Factors** | `<beta>`, `<l0>`, `<refl>`| $4.75$, $1.58$, $2.04$ | Calibrated physiological constants governing length-tension wave shape. |
+
+### 3.2 Time-Discretization & Control Parameters
+The transient execution settings govern full inertial force management across the dynamic compression timeline:
+
+* **Analysis Protocol:** `DYNAMIC` solid mechanics solver explicitly incorporating real-world tissue density ($\rho = 1.0$).
+* **Time Tracking Window:** Configured for exactly `300` time steps with an incremental step size of `0.1` seconds, establishing a total simulation domain of $30.0\text{ s}$.
+* **Nonlinear Solver Strategy:** Symmetric stiffness matrix configuration utilizing quasi-Newton BFGS updates with a staggered equation scheme for stable equilibrium convergence.
 
 ---
 
-## 3. Methodology & Automated Logging Pipeline
+## 4. Pipeline Preprocessing & Volumetric Meshing
 
-### 3.1 Bypassing GUI Overhead
+### 4.1 Bypassing Graphical User Interface (GUI) Overhead
 To execute multi-run studies efficiently without graphical interface dependencies, the baseline FEBio text input deck was appended with a native `<logfile>` tracking schema block within the `<Output>` architecture. This commands the core-solver to output isolated numerical arrays directly during the convergence loops.
 
 ```xml
@@ -32,7 +76,7 @@ To execute multi-run studies efficiently without graphical interface dependencie
 </Output>
 ```
 
-### 3.2 Tracked Kinematic & Constitutive Targets
+### 4.2 Tracked Kinematic & Constitutive Targets
 1. **Global Contraction Tracker (Node 1773):** Positioned at the unconstrained tendon boundary to capture true axial displacement ($u_z$) over time.
 2. **Local Tissue Integrity Tracker (Element 12457):** Positioned inside the center of the active muscle belly to monitor normal axial stress ($\sigma_z$) and the volume ratio ($J$). 
 
@@ -44,26 +88,26 @@ $$J = \det \mathbf{F} = \frac{V}{V_0}$$
 
 ---
 
-## 4. Baseline Simulation Visualizations
+## 5. Baseline Simulation Visualizations & Kinematic Framework
 
 A high-fidelity visualization strategy was developed using ParaView to explicitly illustrate the structural contraction gradients. 
 
-### 4.1 Displacement Shape Interpolation
+### 5.1 Spatial Deformation Overlay Analysis
 Below is the baseline spatial transformation. By extracting the initial step ($t=0$) as a static wireframe reference shell (rendered at $30\%$ opacity), we capture a clear visualization of the muscle belly pulling away inward as the transient mesh reaches full displacement ($t=1.0$).
 
 ![Baseline Displacement Overlay Shell](images/baseline_displacement_overlay.png)
 *Baseline kinematic structural transformation at t=1.0 relative to the undeformed t=0 geometry (rendered as a 30% opacity wireframe). Note: The deformed solid state utilizes a ParaView 'Warp By Vector' filter with a Scale Factor of 5.0 to visually amplify the contraction profile relative to the undeformed t=0 geometry.*
 
-### 4.2 Quantitative Transient Tracking
+### 5.2 Micro-Scale Boundary Progression Tracking
 By capturing specific point markers natively over time across all simulation states, the following multi-view workspace layout tracks the explicit acceleration profile of the tendon interface alongside its physical displacement spatial domain.
 
 ![Baseline Displacement Over Time Layout](images/baseline_combined_view.png)
 
 ---
 
-## 5. Initial Sensitivity Study ($T_{\max}$ Exploratory Sweep)
+## 6. Sensitivity Study I: Isometric Active Tension ($T_{\max}$) Exploratory Sweep
 
-### 5.1 Multi-Surface Deformation Overlay
+### 6.1 Geometric Contraction Profile Silhouetting
 To visually distinguish the progression of muscle contraction across the exploratory spectrum ($T_{\max} \in \{2, 3, 4, 5\}$), a multi-layer outline visualization was developed. The maximum deformation state ($T_{\max} = 5$) serves as the solid background anchor color-mapped to displacement magnitude, while the final contracted states of $T_{\max} = 2, 3,$ and $4$ are overlaid as uniform wireframe silhouettes.
 
 To resolve the tightly grouped geometric transformations, an identical displacement scaling multiplier ($\text{Scale Factor} = 5.0$) was applied across all concurrent layers to amplify boundary separation.
@@ -71,23 +115,21 @@ To resolve the tightly grouped geometric transformations, an identical displacem
 ![Tmax Parameter Sweep Mesh Overlay](images/tmax_mesh_overlay.png)
 *Multi-surface structural contraction progression across the parameter sweep. Note: A ParaView 'Warp By Vector' filter with a Scale Factor of 5.0 has been applied across all concurrent layers to visually resolve the tightly grouped geometric transformations.*
 
----
-
-## 6. Quantitative Results & Diagnostic Analytics
-
-The text logs autonomously extracted via the pipeline were processed using [`plot_sweep.py`](plot_sweep.py) to generate transient tracking curves mapping total displacement against simulation time frames.
+### 6.2 Quantitative Timeline Shortening Analytics
+The text logs autonomously extracted via the pipeline were processed using `plot_sweep.py` to generate transient tracking curves mapping total displacement against simulation time frames.
 
 ![Z-Displacement vs Time Plot](images/tmax_sweep_comparison.png)
 *Quantitative transient tracking curves extracted via python parsing scripts, confirming the monotonic relationship between peak contraction velocity and isometric muscle capacity values.*
 
-### 6.1 Key Findings & Validation
-1. **Kinematic Response:** Higher isometric active tension limits correspond directly to greater final displacements at the unconstrained tendon boundary. The peak Z-displacement scales monotonically from $0.47\text{ mm}$ ($T_{\max} = 2$) up to $1.09\text{ mm}$ ($T_{\max} = 5$).
-2. **Volumetric Mesh Stability:** At peak loading conditions ($T_{\max} = 5$), tracking data from the deep muscle belly (Element 12457) confirms that the volume ratio ($J$) stabilized at $0.9808$. Because muscle tissue behaves nearly incompressibly ($J \approx 1.0$), a volumetric compression bound under $2\%$ demonstrates that the continuum elements maintain excellent physical health without triggering localized volumetric locking.
-3. **Activation Curve Limitations:** The transient displacement profiles exhibit an un-biomimetic linear acceleration slope instead of reaching a natural physical plateau. This behavior is directly caused by the continuous loading curve function defined inside the material configuration deck as `<math>t/20</math>`. This boundary constraint forces active internal fiber tension to scale infinitely over time.
+### 6.3 Key Biomechanical Findings & Parameter Weights
+
+1. **Kinematic Response Modality:** The exploratory sweep reveals a severe, monotonic relationship between peak shortening velocity and isometric engine capacity. The peak Z-displacement scales continuously from an absolute boundary delivery of $0.47\text{ mm}$ at $T_{\max} = 2$ up to an amplified magnitude of $1.09\text{ mm}$ at peak operational conditions ($T_{\max} = 5$). Note: The sweep begins at $T_{\max} = 2.0\text{ MPa}$ to explore the upper performance envelope of the contractile engine; the $T_{\max} = 1.0\text{ MPa}$ baseline result is documented separately as part of the global baseline simulation in Section 5.
+2. **Volumetric Element Stability:** At the maximum structural strain limit ($T_{\max} = 5$), tracking arrays from the localized active core (Element 12457) confirm that the element volume ratio ($J$) stabilizes tightly at $0.9808$. Because healthy biological tissue operates near strict incompressibility boundaries ($J \approx 1.0$), a volumetric compression bound restricted under $2\%$ validates that the continuum elements preserve stable material configurations without inducing localized volumetric locking fields.
+3. **Programmatic Parameter Weights:** In evaluating overall system impact, the active tension parameters carry massive functional weight on initial acceleration velocities, but their long-term shortening capacity remains ultimately bounded by the passive matrix constraints. In open-loop loading setups, if active drive scales infinitely over time via functions like `<math>t/20</math>`, the model fails to reach a natural physiological plateau, forcing active tension vectors to continuously fight background structural restrictions instead of settling into a steady-state contraction equilibrium.
 
 ---
 
-## 7. Material Sensitivity Study: Isotropic Matrix Stiffness ($c_1$)
+## 7. Sensitivity Study II: Isotropic Matrix Shear Stiffness ($c_1$)
 
 ### 7.1 Clinical & Physical Objective
 To investigate how structural variations in the muscle's extracellular matrix (ECM) affect overall contracting function, a material sensitivity analysis was conducted on the isotropic matrix shear stiffness coefficient ($c_1$). 
@@ -102,13 +144,13 @@ The parameter scaling spectrum ($0.5\times$, $1.0\times$, $2.0\times$, and $4.0\
 ---
 
 ### 7.2 Expanded Repository Layout
-To support Strategy A (modular parameter tracking), dedicated asset vaults were integrated into the existing folder tree to keep the repository highly scannable and isolated:
+To support modular parameter tracking, dedicated asset vaults were integrated into the existing folder tree to keep the repository highly scannable and isolated:
 * **Input Decks:** [`feb_inputs/matrix_stiffness_c1/`](feb_inputs/matrix_stiffness_c1/) — Holds the individual structural XML configuration files (`biceps_c1_0.5.feb` through `biceps_c1_4.0.feb`).
 * **Text Streams:** [`raw_logs/matrix_stiffness_c1/`](raw_logs/matrix_stiffness_c1/) — Clean data vault containing ASCII numerical streams (`c1_*_disp.txt`) and solver diagnostic trackers (`c1_*.log`).
 * **Automation Workspace:** [`scripts/`](scripts/) — Dedicated script folder isolating automation and parsing execution assets from the root.
     * [`scripts/run_sweep_c1.py`](scripts/run_sweep_c1.py) — Automated execution loop and post-run file organizer.
     * [`scripts/plot_sweep_c1.py`](scripts/plot_sweep_c1.py) — High-fidelity parsing and visualization generator.
-* **Visual Databases:** [`febio_results/matrix_stiffness_c1/`](febio_plots/matrix_stiffness_c1/) — Contains the high-fidelity 3D binary visual files (`biceps_c1_*.xplt`).
+* **Visualization Figures:** [`images/matrix_stiffness_c1/`](images/matrix_stiffness_c1/) — Dedicated directory isolating the generated macro-kinematic transient sensitivity plots utilized in this documentation.
 
 ---
 
@@ -179,12 +221,9 @@ The extracted text streams tracking the unconstrained tendon boundary (Node 1773
     * **Severe Pathological Fibrosis ($4.0\times c_1$)** locks the continuum structure into a highly constrained state, crippling performance down to a maximum displacement bound of just **0.08 mm** (a $66.7\%$ reduction in functional contraction relative to healthy tissue).
 3. **Preservation of Activation Physics:** The uniform scaling of the dynamic, multi-stage "S-curve" wave shape across all four curves validates that the underlying active fiber load controller remains perfectly stable across the runs; the performance degradation is driven entirely by the passive matrix parameter variations.
 
-
 ---
 
----
-
-## 8. Material Sensitivity Study: Passive Fiber Stiffness ($c_3$)
+## 8. Sensitivity Study III: Unaligned Passive Fiber Stiffness ($c_3$)
 
 ### 8.1 Clinical & Physical Objective
 To investigate how localized directional variations within the muscle's longitudinal architectural bundles affect active contracting function, a parallel sensitivity analysis was executed on the passive unaligned fiber stiffness coefficient ($c_3$; officially designated in the FEBio User Manual syntax as the **Exponential stress coefficient**). 
@@ -205,7 +244,7 @@ To maintain complete consistency with our modular parameter tracking approach, d
 * **Automation Workspace Scripts:**
     * [`scripts/run_sweep_c3.py`](scripts/run_sweep_c3.py) — Automated execution loop, inline data stream filter, and file routing manager.
     * [`scripts/plot_sweep_c3.py`](scripts/plot_sweep_c3.py) — Custom dual-plot parser and visual dataset generator.
-* **Visual Databases:** [`febio_results/fiber_stiffness_c3/`](febio_plots/fiber_stiffness_c3/) — Contains the high-fidelity 3D binary visual tracking databases (`biceps_c3_*.xplt`).
+* **Visualization Figures:** [`images/fiber_stiffness_c3/`](images/fiber_stiffness_c3/) — Dedicated directory isolating the generated macro-kinematic transient plots and terminal micro-scale validation windows utilized in this documentation.
 
 ---
 
@@ -284,11 +323,12 @@ The secondary plot isolates the terminal step transition ($t = 29.85\text{ s}$ t
     * **$2.0\times c_3$ (Mild Stiffening):** $0.241179\text{ mm}$
     * **$4.0\times c_3$ (Severe Sclerosis):** $0.241498\text{ mm}$
     
-    This microscopic divergence spans a total range of just $0.0008\text{ mm}$ ($<0.3\%$). It is driven by the **Poisson's effect**—as the complex 3D muscle belly actively shortens axially, it is forced to bulge outward radially in the X and Y directions to maintain volume. This radial bulging forces localized elements near the non-parallel geometric boundaries to experience micro-strains perpendicular to the primary axis, putting those local fibers into a tiny amount of passive transverse tension. Stiffer fibers ($4.0\times c_3$) resist this local transverse deformation more rigidly, altering the local stress fields slightly and allowing a microscopic fraction of extra movement to be delivered to the unconstrained tendon interface.
+    This microscopic divergence spans a total range of just $0.0008\text{ mm}$ ($<0.3\%$). It is driven by the **Poisson's effect**—as the complex 3D muscle belly actively shortens axially, it is forced to bulge outward radially in the X and Y directions to maintain volume. This radial bulging forces localized elements near the non-parallel geometric boundaries to experience micro-strains perpendicular to the primary axis, putting those local fibers into a tiny amount of passive transverse tension. Stiffer fibers ($4.0\times c_3$) resist this local transverse deformation more rigidly, altering the local stress fields slightly and allowing a microscopic fraction of extra movement to be delivered to the unconstrained tendon interface. Notably, this divergence does not appear only at the terminal step — it accumulates progressively throughout the contraction, becoming visible only at this level of micro-scale amplification.
 3. **Contrast with Isotropic Matrix Stiffness ($c_1$):** This dual-graph evaluation establishes an invaluable structural baseline for muscle tissue pathomechanics. While matrix fibrosis ($c_1$) severely cripples contraction capacity by locking up the surrounding isotropic continuum (cutting performance by $66.7\%$), passive structural fiber bundle fibrosis ($c_3$) has zero functional impact on active contraction velocity or global movement delivery.
+
 ---
 
-## 9. Material Sensitivity Study: Fiber Strain-Stiffening Exponent ($c_4$)
+## 9. Sensitivity Study IV: Passive Fiber Strain-Stiffening Exponent ($c_4$)
 
 ### 9.1 Clinical & Physical Objective
 To investigate how the architectural shape curvature of the passive longitudinal bundles governs macro shortening delivery, a material sensitivity analysis was conducted on the dimensionless fiber strain-stiffening exponent ($c_4$; officially designated in the FEBio User Manual syntax as the **Exponential shape coefficient**). 
@@ -308,7 +348,7 @@ To support Strategy A (modular parameter tracking), dedicated asset vaults were 
 * **Automation Workspace:** [`scripts/`](scripts/) — Dedicated script folder isolating automation and parsing execution assets from the root.
     * [`scripts/run_sweep_c4.py`](scripts/run_sweep_c4.py) — Automated execution loop and post-run file organizer.
     * [`scripts/plot_sweep_c4.py`](scripts/plot_sweep_c4.py) — High-fidelity parsing and visualization generator.
-* **Visual Databases:** [`febio_results/fiber_stiffness_c4/`](febio_results/fiber_stiffness_c4/) — Contains the high-fidelity 3D binary visual files (`biceps_c4_*.xplt`).
+* **Visualization Figures:** [`images/fiber_stiffness_c4/`](images/fiber_stiffness_c4/) — Dedicated directory isolating the generated macro-kinematic transient plots utilized in this documentation.
 
 ---
 
@@ -386,18 +426,16 @@ The secondary plot isolates the terminal step transition ($t = 29.85\text{ s}$ t
 #### 9.4.3 Interconnected Mechanical Findings (Parameter Study Summary):
 1. **Global Kinematic Insensitivity (The Macro View):** As demonstrated in the global macro plot, the three simulation curves remain completely visually identical throughout $99.9\%$ of the execution timeline. Changing the passive fiber strain-stiffening exponent $c_4$ by a factor of 3 (shifting from $30.0$ to $90.0$) results in a functionally negligible global displacement change. This behavior highlights a major biomechanical disconnect: during active muscle contraction, the tissue actively shortens along its principal longitudinal axis (Z-axis), meaning the passive fibers experience continuous **compression** ($\lambda < 1$) rather than tension. By design, the passive mathematical equations inside FEBio's `trans iso Mooney-Rivlin` formulation automatically switch off or drop to zero resistance under compression, leaving global movement entirely unimpeded by $c_4$.
 2. **Poisson-Induced Boundary Divergence (The Micro View):** By pairing the macro plot with the heavily amplified terminal micro-plot, a subtle, highly specific mechanical phenomenon is revealed. At the maximum contraction state ($t = 30\text{ s}$), the final values split slightly at the nanometer level:
-    * **$c_4 = 30.0$ (Compliant Shape):** $0.240889\text{ mm}$
+    * **$c_4 = 30.0$ (Compliant Shape):** $0.240878\text{ mm}$
     * **$c_4 = 61.44$ (Baseline Reference):** $0.240883\text{ mm}$
-    * **$c_4 = 90.0$ (Stiff Shape):** $0.240878\text{ mm}$
+    * **$c_4 = 90.0$ (Stiff Shape):** $0.240889\text{ mm}$
     
     This microscopic divergence spans a total range of just $11\text{ nanometers}$ ($<0.005\%$). It is driven by the **Poisson's effect**—as the complex 3D muscle belly actively shortens axially, it is forced to bulge outward radially in the X and Y directions to maintain volume. This radial bulging forces localized elements near the non-parallel geometric boundaries to experience micro-strains perpendicular to the primary axis, putting those local fibers into a tiny amount of passive transverse tension. Stiffer exponents ($c_4 = 90.0$) resist this local transverse deformation more rigidly, altering the local stress fields slightly and allowing a microscopic fraction of extra movement to be delivered to the unconstrained tendon interface.
 3. **Contrast with Isotropic Matrix Stiffness ($c_1$):** This dual-graph evaluation establishes an invaluable structural baseline for muscle tissue pathomechanics. While matrix fibrosis ($c_1$) severely cripples contraction capacity by locking up the surrounding isotropic continuum (cutting performance by $66.7\%$), passive structural fiber parameters ($c_3$ and $c_4$) have zero functional impact on active contraction velocity or global movement delivery, manifesting only as sub-micrometer artifacts of secondary transverse bulging fields.
 
 ---
 
----
-
-## 10. Material Sensitivity Study: Straightened Fiber Modulus ($c_5$)
+## 10. Sensitivity Study V: Straightened Fiber Modulus ($c_5$)
 
 ### 10.1 Clinical & Physical Objective
 To investigate how the linear stiffness slope of fully elongated tissue governs macro contraction execution under peak tensile loading, a parallel material sensitivity analysis was conducted on the linear fiber modulus ($c_5$; officially designated in the FEBio User Manual syntax as the **Modulus of straightened fibers**). 
@@ -418,7 +456,7 @@ To support Strategy A (modular parameter tracking) and ensure full transparency 
 * **Automation Workspace:** [`scripts/`](scripts/) — Central script vault housing our automated processing utilities.
     * [`scripts/run_sweep_c5.py`](scripts/run_sweep_c5.py) — Automated execution loop, inline data stream filter, and file routing manager.
     * [`scripts/plot_sweep_c5.py`](scripts/plot_sweep_c5.py) — Custom dual-plot parser utilizing dynamic terminal frame axis auto-scaling.
-* **Visual Databases:** [`febio_results/fiber_stiffness_c5/`](febio_results/fiber_stiffness_c5/) — Contains the high-fidelity 3D binary visual files (`biceps_c5_*.xplt`).
+* **Visualization Figures:** [`images/fiber_stiffness_c5/`](images/fiber_stiffness_c5/) — Dedicated directory isolating the generated macro-kinematic transient plots utilized in this documentation.
 
 ---
 
@@ -502,9 +540,7 @@ The secondary plot isolates the terminal step transition ($t = 29.85\text{ s}$ t
 
 ---
 
----
-
-## 11. Active Contraction Study: Active Scale Factor ($ascl$)
+## 11. Sensitivity Study VI: Active Scale Factor Multiplier ($ascl$)
 
 ### 11.1 Clinical & Physical Objective
 To investigate how changes in internal cellular engine strength govern global macro shortening and mechanical output, a material sensitivity analysis was conducted on the active scale factor coefficient ($ascl$; officially designated in the FEBio User Manual syntax as the scaling multiplier for the active fiber contractility load curve).
@@ -514,7 +550,7 @@ The parameter spectrum ($0.5$, $1.0$, $1.5$, and $2.0$) was chosen strictly as a
 * **$0.5\times ascl$:** Atrophied / Deep Neuromuscular Fatigue State (A simulation level representing a 50% reduction in contractility to model severe operational down-regulation or tissue wasting).
 * **$1.0\times ascl$:** Healthy Control Baseline (The standard physiological starting configuration used as a benchmark).
 * **$1.5\times ascl$:** Hyper-Activation / Targeted Functional Electrical Stimulation (FES) (An intuitive simulation placeholder modeling up-regulated contractile recruitment via external excitation).
-* **$2.0\times ascl$:** Acute Inotropic Ceiling / Maximal Tetanic Cramp (An exploratory boundary representing a full involuntary tetanic spasm to stress-test the high-strain continuum limits of the 3D model).
+* **$2.0\times ascl$:** Acute Inotropic Ceiling / Maximal Voluntary Contraction Boundary (An exploratory boundary representing a doubled contractility scale to stress-test the high-strain continuum limits of the 3D model).
 
 ---
 
@@ -525,7 +561,7 @@ To support Strategy A (modular parameter tracking) and preserve full directory s
 * **Automation Workspace:** [`scripts/`](scripts/) — Central script folder housing our automated validation utilities.
     * [`scripts/run_sweep_ascl.py`](scripts/run_sweep_ascl.py) — Automated execution loop, inline data stream filter, and file routing manager.
     * [`scripts/plot_sweep_ascl.py`](scripts/plot_sweep_ascl.py) — Custom global macro-trend log parser and figure generator.
-* **Visual Databases:** [`febio_results/active_ascl/`](febio_results/active_ascl/) — Central vault storing high-fidelity 3D binary visualization tracking databases (`biceps_ascl_*.xplt`).
+* **Visualization Figures:** [`images/active_ascl/`](images/active_ascl/) — Dedicated directory isolating the generated macro-kinematic transient plots utilized in this documentation.
 
 ---
 
@@ -595,14 +631,13 @@ The extracted text streams tracking the unconstrained tendon boundary (Node 1773
     * **$0.5\times ascl$ (Atrophied State):** $\approx 0.12\text{ mm}$ of total shortening.
     * **$1.0\times ascl$ (Healthy Baseline):** $\approx 0.24\text{ mm}$ of total shortening.
     * **$1.5\times ascl$ (Hyper-Activation):** $\approx 0.36\text{ mm}$ of total shortening.
+    * **$2.0\times ascl$ (Acute Inotropic Ceiling):** $\approx 0.47\text{ mm}$ of total shortening.
 2. **High-Strain Continuum Non-Linearity:** At the highest functional limit ($2.0\times ascl$), the peak displacement converges at $\approx 0.47\text{ mm}$, falling just short of a perfectly linear $0.48\text{ mm}$. This subtle non-linear drop highlights an elegant multi-dimensional continuum mechanism: as the active engine drives massive longitudinal shortening along the primary axis, the tissue is forced to expand and bulge outward radically in the X and Y directions to conserve volume ($J \approx 1.0$). This massive radial bulging heavily stretches the passive background isotropic matrix ($c_1$), which acts like an elastic girdle that grows increasingly stiff at high strains, eventually generating enough passive structural resistance to slightly push back against the active contractility engine.
 3. **Core Insights for Muscle Pathomechanics:** This study provides the definitive operational contrast to our passive material evaluations. Passive fiber parameters ($c_3, c_4, c_5$) are structurally bypassed during concentric contraction due to buckling limitations under compression, rendering them invisible to global kinematics. The macro-scale performance of actively contracting muscle tissue is governed exclusively by a competition between internal active engine power ($ascl$) and surrounding background isotropic matrix stiffness ($c_1$).
 
 ---
 
----
-
-## 12. Active Contraction Study: Peak Intracellular Calcium Sensitivity ($camax$)
+## 12. Sensitivity Study VII: Length-Dependent Calcium Activation Threshold ($camax$)
 
 ### 12.1 Clinical & Physical Objective
 To investigate how localized length-dependent activation (LDA) mechanisms influence macro-scale muscle shortening, a final active material sensitivity analysis was conducted on the peak intracellular calcium parameter ($camax$; officially designated in the FEBio User Manual as the maximum peak intracellular calcium concentration threshold).
@@ -624,7 +659,7 @@ To maintain strict adherence to Strategy A (modular parameter tracking) and ensu
 * **Automation Workspace:** [`scripts/`](scripts/) — Central script folder housing our automated execution utilities.
     * [`scripts/run_sweep_camax.py`](scripts/run_sweep_camax.py) — Automated solver loop, inline data stream filter, and file routing manager.
     * [`scripts/plot_sweep_camax.py`](scripts/plot_sweep_camax.py) — Custom multi-curve log parser and absolute kinematics figure compiler.
-* **Visual Databases:** [`febio_results/active_camax/`](febio_results/active_camax/) — Core storage vault holding the 3D binary visualization tracking databases (`biceps_camax_*.xplt`).
+* **Visualization Figures:** [`images/active_camax/`](images/active_camax/) — Dedicated directory isolating the generated macro-kinematic transient plots utilized in this documentation.
 
 ---
 
@@ -685,7 +720,7 @@ To prevent output data collisions across consecutive solver runs, unique relativ
 The text streams tracking the unconstrained tendon boundary (Node 1773) were compiled via [`scripts/plot_sweep_camax.py`](scripts/plot_sweep_camax.py), outputting a global kinematics timeline tracking absolute Z-displacement over the entire 30-second contraction domain:
 
 ![Calcium Sensitivity Parameter Study](images/active_camax/camax_sweep_comparison.png)
-*Quantitative transient tracking curves isolating Node 1773 absolute Z-displacement across the length-dependent activation domain.*
+*Quantitative transient tracking curves isolating Node 1773 absolute Z-displacement across the length-dependent activation domain. Note: The camax = 0.0 curve (blue) is not visible as it overlaps perfectly with the camax = 4.35 curve (green) throughout the entire simulation.*
 
 #### 12.4.1 Interconnected Mechanical Findings (Parameter Study Summary):
 1. **The Core Balance Superimposition:** An exceptional mathematical validation occurs between the disabled control (`camax = 0.0`; blue curve) and the standard calibrated benchmark (`camax = 4.35`; green curve). Both curves overlap perfectly across the entire 30-second timeline, peaking at an identical absolute displacement of $\approx 0.24\text{ mm}$. This proves that configuring the activation threshold to perfectly match the resting cellular concentration yields a well-balanced physiological state identical to the length-independent baseline.
@@ -706,10 +741,45 @@ Using the clean macro-displacement history ($u_z$) of the unconstrained tendon b
 
 #### 12.5.2 Key Mechanical and Software Findings
 
-1. **The $camax = 0.0$ Internal Software Mechanic:** The analytical tracking reveals a fascinating divergence: while the deactivated control ($camax = 0.0$) and standard baseline ($camax = 4.35$) yielded identical physical displacements, their pure mathematical profiles differ. In the FEBio solver, setting $camax = 0$ acts as a code shortcut that flags the engine to run using default baseline properties. However, evaluating a literal mathematical zero for $Ca_{\max}$ inside the Guccione formula drops the half-saturation barrier ($ECa_{50}$) to absolute zero. Without an internal activation barrier, the calcium activation fraction stays pegged at a perfect $1.0$, locking the active tension at a flat maximum ceiling of $1.0\text{ MPa}$ throughout the entire contraction.
+1. **The $camax = 0.0$ Internal Software Mechanic:** The analytical tracking reveals a fascinating divergence: while the deactivated control ($camax = 0.0$) and standard baseline ($camax = 4.35$) yielded identical physical displacements, their pure mathematical profiles differ. In the FEBio solver, setting $camax = 0$ appears to bypass the length-dependent activation pathway entirely. This behavior is consistent with the half-saturation barrier ($ECa_{50}$) dropping to zero, which would peg the calcium activation fraction at a constant $1.0$ and lock the active tension at a flat maximum ceiling of $1.0\text{ MPa}$ throughout the entire contraction. The exact internal implementation mechanism would require verification against the FEBio source code or documentation.
 
 2. **Physiological Concentric Tension Decay:** For all active configurations where length-dependency is enabled ($2.175$ through $17.4$), the true active tension curves exhibit a smooth downward slope over the 30-second timeline. This perfectly mirrors real-world muscle physiology. As the biceps mesh contracts and shortens, the physical length of the fiber ($l_{\text{current}}$) drops below its resting state. This reduction in length causes the internal activation threshold ($ECa_{50}$) to rise. Because the available cellular calcium concentration is fixed ($Ca_0 = 4.35$), it struggles to climb this rising barrier, naturally scaling down the active tension capacity as shortening progresses.
 
 3. **Validation of the Sensitivity Hierarchy:** This noise-free analytical mapping flawlessly preserves the structural hierarchy discovered in the global kinematics study. Lowering the parameter value ($camax = 2.175$; orange curve) keeps the internal activation barrier low, allowing the cell to maintain a hyper-sensitized high-tension delivery. Conversely, raising the parameter raises the activation barrier, forcing the muscle engine into a desensitized, sluggish state where active tension generation is severely muted ($camax = 17.4$; purple curve).
 
 ---
+
+## 13. Executive Summary of Pathomechanical Hierarchies
+
+### 13.1 Global Sensitivity Matrix
+The following comprehensive matrix compiles the terminal results evaluated at the final step ($t = 30.0\text{ s}$) across all seven independent parameter sweeps conducted within this documentation. This table ranks each constitutive property based on its direct numerical influence over macro-scale boundary displacement ($u_z$):
+
+| Property Classification | FEBio Syntax Parameter | Exploratory Sweep Bounds | Terminal Kinematic Range ($u_z$) | Assigned Functional System Weight | Primary Mechanical Role & Governing Physics |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Active Contractility** | `<Tmax>` | $2.0\text{ MPa}$ to $5.0\text{ MPa}$ | $0.47\text{ mm}$ to $1.09\text{ mm}$ | **Dominant** | Directly dictates the isometric capacity and peak initial acceleration velocities of the contractile engine. |
+| **Active Contractility** | `<ascl>` | $0.5\times$ to $2.0\times$ baseline | $0.12\text{ mm}$ to $0.47\text{ mm}$ | **Dominant** | Exerts near-linear scaling control over forward active force generation along the principal fiber vector. |
+| **Passive Continuum Matrix**| `<c1>` | $0.5\times$ to $4.0\times$ baseline | $0.44\text{ mm}$ (degraded) down to $0.08\text{ mm}$ (fibrotic); inverse relationship — higher stiffness restricts shortening | **Dominant** | Governs background isotropic shear stiffness; acts as an elastic limit that bounds or chokes out active shortening delivery. |
+| **Active Contractility** | `<camax>` | $0.0$ to $17.4$ | $0.24\text{ mm}$ down to $0.088\text{ mm}$ | **Moderate** | Governs length-dependent activation barriers; regulates Guccione concentric tension decay as shortening progresses. |
+| **Passive Anisotropic Fibers**| `<c3>` | $0.5\times$ to $4.0\times$ baseline | $\Delta u_z \approx 0.0008\text{ mm}$ | **Negligible** | Bypassed globally due to fiber buckling under longitudinal compression; manifests exclusively as a micrometer-scale boundary artifact driven by progressive Poisson bulging accumulation. |
+| **Passive Anisotropic Fibers**| `<c4>` | $30.0$ to $90.0$ | $\Delta u_z \approx 0.000011\text{ mm}$ | **Negligible** | Bypassed globally due to compressive uncoupling; manifests exclusively as a sub-micrometer artifact of secondary transverse bulging, accumulating progressively throughout contraction. |
+| **Passive Anisotropic Fibers**| `<c5>` | $0.5\times$ to $4.0\times$ baseline | $\Delta u_z = 0.0\text{ mm}$ | **Silent** | Inactive across the execution domain; elements never achieve the localized stretch threshold ($\lambda \ge 1.03$) required to enter the straightened zone. |
+
+---
+
+### 13.2 Core Parameter Weighting Conclusions
+
+#### 13.2.1 The Active Engine vs. Isotropic Matrix Competition
+The multi-parameter dataset demonstrates that the macro-scale kinematic delivery of the 3D biceps model is ultimately governed by a direct mechanical competition between the active contractile drive ($T_{\max}, ascl$) and the passive background isotropic matrix shear stiffness ($c_1$). 
+* **Active Drive Influence:** Modifying the active scale factor multiplier ($ascl$) or peak isometric tension capacity ($T_{\max}$) yields widespread divergence in the transient displacement profiles, demonstrating immediate macro-scale control over shortening velocity. 
+* **Matrix Resistance Boundaries:** However, this active performance is heavily gatekept by the extracellular matrix shear modulus ($c_1$). When matrix stiffness is scaled up to model fibrotic states ($4.0\times c_1$), the muscle is forced to expend its active force deforming its own background continuum structures. This structural resistance cuts terminal shortening delivery by a severe $66.7\%$, proving that matrix properties carry dominant functional weight over overall system kinematics.
+
+#### 13.2.2 The Passive Fiber Compression Bypass
+A central structural finding across this multi-parameter study is the total global insensitivity of the model to variations in the passive unaligned fiber constants ($c_3, c_4, c_5$).
+* **The Compression Mechanic:** Because the primary loading pathway involves concentric contraction parallel to the global Z-axis, the internal longitudinal fiber bundles experience continuous compression ($\lambda < 1$) rather than tension. 
+* **Constitutive Uncoupling:** By design, FEBio's uncoupled transversely isotropic Mooney-Rivlin formulation automatically uncouples or drops fiber resistance to zero under compression to prevent unphysical wire-stiffening. Consequently, changing the exponential scale ($c_3$), shape exponent ($c_4$), or straightened modulus ($c_5$) has zero physical impact on global displacement, with the exception of sub-micrometer to micrometer-scale artifacts in $c_3$ and $c_4$ driven by secondary Poisson bulging fields, which accumulate progressively but remain functionally negligible.
+* **Poisson Deflection Artifacts:** These directional fiber parameters only manifest as microscopic boundary artifacts (spanning nanometer to micrometer ranges) driven exclusively by secondary transverse Poisson bulging fields. As the muscle belly shortens axially, it bulges radially to conserve volume ($J \approx 1.0$), pushing a tiny subset of non-parallel boundary elements into a minor state of passive transverse tension.
+
+#### 13.2.3 Length-Dependent Activation Modulation
+The inclusion of length-dependent activation thresholds ($camax$) introduces a vital regulatory mechanism to the active engine. 
+* **Concentric Tension Decay:** When $camax$ is enabled, the analytical verification of true active tension ($T^a$) uncovers a smooth downward decay profile over time. As the mesh shortens, the localized fiber lengths drop, which raises the internal half-saturation activation barrier ($ECa_{50}$). 
+* **Threshold Desensitization:** Because the intracellular calcium availability is fixed ($Ca_0 = 4.35$), the muscle engine naturally scales down its force output as a function of geometric deformation. Raising this threshold parameter desensitizes the activation engine, providing a moderate, highly predictable tool for dampening macro-scale kinematics without altering the background passive tissue constants.
